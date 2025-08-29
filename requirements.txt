@@ -1,0 +1,6 @@
+
+fastapi==0.104.1
+selenium
+webdriver-manager
+uvicorn
+jinja2

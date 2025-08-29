@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firefox浏览器控制台</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 125px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #34495e;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+        .tabs-bar {
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-bottom: 1px solid #bdc3c7;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .controls-area {
+            background-color: white;
+            padding: 15px;
+            border-bottom: 1px solid #bdc3c7;
+        }
+        .screenshot-area {
+            flex: 1;
+            padding: 20px;
+            overflow: auto;
+            background-color: white;
+        }
+        .status-panel {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .tabs-container {
+            display: flex;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .tab-item {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            max-width: 250px;
+            height: 60px;
+            margin-right: 8px;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px 4px 0 0;
+            cursor: pointer;
+            background-color: #d5dbdb;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .tab-item:hover {
+            background-color: #aeb6bf;
+        }
+        .tab-item.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        .tab-title {
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        .tab-url {
+            color: #7f8c8d;
+            font-size: 10px;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+        }
+        .tab-item.active .tab-url {
+            color: #ecf0f1;
+        }
+        .tab-status {
+            font-size: 10px;
+            margin-top: 4px;
+            color: #3498db;
+        }
+        .tab-item.active .tab-status {
+            color: #ecf0f1;
+        }
+        .tab-close {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .tab-close:hover {
+            opacity: 1;
+        }
+        .tab-item {
+            position: relative;
+        }
+        .no-tabs {
+            padding: 10px;
+            text-align: center;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        .status-item {
+            margin-bottom: 12px;
+        }
+        .status-label {
+            font-weight: bold;
+            margin-bottom: 3px;
+            color: #ecf0f1;
+            font-size: 12px;
+        }
+        .status-value {
+            color: #bdc3c7;
+            font-size: 11px;
+            word-break: break-all;
+            line-height: 1.3;
+        }
+        .browser-running {
+            color: #2ecc71;
+        }
+        .browser-stopped {
+            color: #e74c3c;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .screenshot-container {
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 10px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8f9fa;
+        }
+        .screenshot-img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #27ae60;
+        }
+        .btn-warning {
+            background-color: #f39c12;
+            color: white;
+        }
+        .btn-warning:hover {
+            background-color: #e67e22;
+        }
+        .btn-info {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background-color: #138496;
+        }
+        .url-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 8px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        .swagger-btn {
+            width: 100%;
+            padding: 8px 4px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            text-align: center;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        .swagger-btn:hover {
+            background-color: #2980b9;
+        }
+        /* JavaScript执行器样式 */
+        .js-executor-panel {
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .js-executor-header {
+            background-color: #34495e;
+            color: white;
+            padding: 10px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .js-executor-content {
+            padding: 15px;
+            display: none;
+        }
+        .js-executor-content.expanded {
+            display: block;
+        }
+        .js-code-editor {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        .js-code-editor:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        .js-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .js-result-container {
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 10px;
+            background-color: white;
+            min-height: 100px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .js-result {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .js-result.success {
+            color: #2ecc71;
+        }
+        .js-result.error {
+            color: #e74c3c;
+        }
+        .js-executor-toggle {
+            transition: transform 0.3s ease;
+        }
+        .js-executor-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        .js-loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧状态栏 -->
+        <div class="sidebar">
+            <h2 style="margin-top: 0; color: #ecf0f1; font-size: 16px;">状态</h2>
+            <div class="status-item">
+                <button id="swagger-btn" class="swagger-btn">查看Swagger文档</button>
+            </div>
+            <div class="status-item">
+                <div class="status-label">状态</div>
+                <div id="browser-status" class="status-value">加载中...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">标题</div>
+                <div id="page-title" class="status-value">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">URL</div>
+                <div id="page-url" class="status-value">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">标签数</div>
+                <div id="tabs-count" class="status-value">-</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">消息</div>
+                <div id="status-message" class="status-value">-</div>
+            </div>
+        </div>
+        
+        <!-- 右侧主内容区 -->
+        <div class="main-content">
+            <!-- 顶部标题栏 -->
+            <div class="header">
+                <h1 style="margin: 0; font-size: 24px;">Firefox浏览器控制台</h1>
+            </div>
+            
+            <!-- 顶部标签页栏 -->
+            <div class="tabs-bar">
+                <div id="tabs-container" class="tabs-container">加载中...</div>
+            </div>
+            
+            <!-- 控制区域 -->
+            <div class="controls-area">
+                <div class="controls">
+                    <input type="text" id="url-input" class="url-input" placeholder="输入要访问的URL">
+                    <button id="navigate-btn" class="btn btn-primary">导航</button>
+                    <button id="new-tab-btn" class="btn btn-primary">新建标签页</button>
+                    <button id="screenshot-btn" class="btn btn-success">截图</button>
+                    <button id="js-executor-toggle-btn" class="btn btn-info">JavaScript执行器</button>
+                </div>
+            </div>
+            
+            <!-- 截图区域 -->
+            <div class="screenshot-area">
+                <h2 style="margin-top: 0; color: #2c3e50;">页面截图</h2>
+                <div id="screenshot-container" class="screenshot-container">
+                    <p>点击"截图"按钮获取当前页面截图</p>
+                </div>
+                
+                <!-- JavaScript执行器面板 -->
+                <div id="js-executor-panel" class="js-executor-panel" style="display: none;">
+                    <div id="js-executor-header" class="js-executor-header">
+                        <span>JavaScript执行器</span>
+                        <span id="js-executor-toggle" class="js-executor-toggle">▼</span>
+                    </div>
+                    <div id="js-executor-content" class="js-executor-content expanded">
+                        <textarea id="js-code-editor" class="js-code-editor" placeholder="在此输入JavaScript代码...">// 示例：获取页面标题
+return document.title;</textarea>
+                        <div class="js-controls">
+                            <button id="js-execute-btn" class="btn btn-primary">执行代码</button>
+                            <button id="js-clear-code-btn" class="btn btn-warning">清空代码</button>
+                            <button id="js-clear-result-btn" class="btn btn-warning">清空结果</button>
+                        </div>
+                        <div class="js-result-container">
+                            <div id="js-result" class="js-result">执行结果将显示在这里...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL
+        const API_BASE = '/api';
+        
+        // 显示消息
+        function showMessage(message, type) {
+            const messageEl = document.getElementById('status-message');
+            messageEl.textContent = message;
+            
+            // 根据消息类型设置颜色
+            if (type === 'success') {
+                messageEl.style.color = '#2ecc71';
+            } else if (type === 'error') {
+                messageEl.style.color = '#e74c3c';
+            } else {
+                messageEl.style.color = '#bdc3c7';
+            }
+            
+            // 3秒后清除消息
+            setTimeout(() => {
+                messageEl.textContent = '-';
+                messageEl.style.color = '#bdc3c7';
+            }, 3000);
+        }
+        
+        // 获取浏览器状态
+        async function getBrowserStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/status`);
+                const data = await response.json();
+                
+                const statusEl = document.getElementById('browser-status');
+                const titleEl = document.getElementById('page-title');
+                const urlEl = document.getElementById('page-url');
+                const tabsCountEl = document.getElementById('tabs-count');
+                
+                if (data.browser_running) {
+                    statusEl.textContent = '运行中';
+                    statusEl.className = 'status-value browser-running';
+                    titleEl.textContent = data.title || '-';
+                    urlEl.textContent = data.url || '-';
+                    tabsCountEl.textContent = data.tabs_count || 0;
+                } else {
+                    statusEl.textContent = '未运行';
+                    statusEl.className = 'status-value browser-stopped';
+                    titleEl.textContent = '-';
+                    urlEl.textContent = '-';
+                    tabsCountEl.textContent = '0';
+                }
+                
+                return data.browser_running;
+            } catch (error) {
+                showMessage('获取浏览器状态失败: ' + error.message, 'error');
+                return false;
+            }
+        }
+        
+        // 获取标签页列表
+        async function getTabsList() {
+            try {
+                const response = await fetch(`${API_BASE}/tabs`);
+                const data = await response.json();
+                
+                const tabsContainerEl = document.getElementById('tabs-container');
+                tabsContainerEl.innerHTML = '';
+                
+                if (data.tabs && data.tabs.length > 0) {
+                    data.tabs.forEach(tab => {
+                        const tabItem = document.createElement('div');
+                        tabItem.className = 'tab-item';
+                        if (tab.is_current) {
+                            tabItem.classList.add('active');
+                        }
+                        
+                        tabItem.innerHTML = `
+                            <div class="tab-title">${tab.title || '无标题'}</div>
+                            <div class="tab-url">${tab.url || 'about:blank'}</div>
+                            <div class="tab-status">${tab.is_current ? '当前' : ''}</div>
+                            <button class="tab-close" data-handle="${tab.handle}">×</button>
+                        `;
+                        
+                        // 点击标签页切换标签
+                        tabItem.addEventListener('click', (e) => {
+                            // 如果点击的是关闭按钮，不触发切换标签页
+                            if (!e.target.classList.contains('tab-close')) {
+                                switchTab(tab.handle);
+                            }
+                        });
+                        
+                        // 点击关闭按钮关闭标签页
+                        const closeBtn = tabItem.querySelector('.tab-close');
+                        closeBtn.addEventListener('click', (e) => {
+                            e.stopPropagation(); // 阻止事件冒泡
+                            closeTab(tab.handle);
+                        });
+                        tabsContainerEl.appendChild(tabItem);
+                    });
+                } else {
+                    tabsContainerEl.innerHTML = '<div class="no-tabs">没有标签页</div>';
+                }
+            } catch (error) {
+                showMessage('获取标签页列表失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 导航到URL
+        async function navigateToUrl() {
+            const urlInput = document.getElementById('url-input');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showMessage('请输入URL', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/navigate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url })
+                });
+                
+                if (response.ok) {
+                    showMessage('导航成功', 'success');
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    showMessage('导航失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('导航失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 新建标签页
+        async function openNewTab() {
+            try {
+                const response = await fetch(`${API_BASE}/open_tab`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ url: 'about:blank' })
+                });
+                
+                if (response.ok) {
+                    showMessage('新建标签页成功', 'success');
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    showMessage('新建标签页失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('新建标签页失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 切换标签页
+        async function switchTab(handle) {
+            try {
+                const response = await fetch(`${API_BASE}/switch_tab`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ handle })
+                });
+                
+                if (response.ok) {
+                    showMessage('切换标签页成功', 'success');
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    showMessage('切换标签页失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('切换标签页失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 关闭标签页
+        async function closeTab(handle) {
+            try {
+                const response = await fetch(`${API_BASE}/close_tab`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ handle })
+                });
+                
+                if (response.ok) {
+                    showMessage('关闭标签页成功', 'success');
+                    refreshData();
+                } else {
+                    const error = await response.json();
+                    showMessage('关闭标签页失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                showMessage('关闭标签页失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 截图
+        async function takeScreenshot() {
+            const screenshotContainer = document.getElementById('screenshot-container');
+            screenshotContainer.innerHTML = '<p>正在截图...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/screenshot`);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    screenshotContainer.innerHTML = `<img src="${imageUrl}" alt="页面截图" class="screenshot-img">`;
+                    showMessage('截图成功', 'success');
+                } else {
+                    const error = await response.json();
+                    screenshotContainer.innerHTML = '<p>截图失败</p>';
+                    showMessage('截图失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                screenshotContainer.innerHTML = '<p>截图失败</p>';
+                showMessage('截图失败: ' + error.message, 'error');
+            }
+        }
+        
+        
+        // 跳转到Swagger文档
+        function openSwaggerDocs() {
+            window.open('/docs', '_blank');
+        }
+        
+        // JavaScript执行器功能
+        // 切换JavaScript执行器面板的显示/隐藏状态
+        function toggleJsExecutorPanel() {
+            const panel = document.getElementById('js-executor-panel');
+            const toggle = document.getElementById('js-executor-toggle');
+            
+            if (panel.style.display === 'none') {
+                // 显示面板
+                panel.style.display = 'block';
+                toggle.classList.add('expanded');
+            } else {
+                // 隐藏面板
+                panel.style.display = 'none';
+                toggle.classList.remove('expanded');
+            }
+        }
+        
+        // 执行JavaScript代码
+        async function executeJsCode() {
+            const codeEditor = document.getElementById('js-code-editor');
+            const resultContainer = document.getElementById('js-result');
+            
+            const code = codeEditor.value.trim();
+            
+            if (!code) {
+                showMessage('请输入JavaScript代码', 'error');
+                return;
+            }
+            
+            // 显示加载状态
+            resultContainer.innerHTML = '<span class="js-loading"></span> 执行中...';
+            resultContainer.className = 'js-result';
+            
+            try {
+                const response = await fetch(`${API_BASE}/execute_script`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ script: code })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // 格式化显示结果
+                    let formattedResult;
+                    if (data.result === null) {
+                        formattedResult = 'null';
+                    } else if (typeof data.result === 'object') {
+                        formattedResult = JSON.stringify(data.result, null, 2);
+                    } else {
+                        formattedResult = String(data.result);
+                    }
+                    
+                    resultContainer.textContent = formattedResult;
+                    resultContainer.className = 'js-result success';
+                    showMessage('代码执行成功', 'success');
+                } else {
+                    const error = await response.json();
+                    resultContainer.textContent = `错误: ${error.detail}`;
+                    resultContainer.className = 'js-result error';
+                    showMessage('执行失败: ' + error.detail, 'error');
+                }
+            } catch (error) {
+                resultContainer.textContent = `错误: ${error.message}`;
+                resultContainer.className = 'js-result error';
+                showMessage('执行失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 清空代码
+        function clearJsCode() {
+            const codeEditor = document.getElementById('js-code-editor');
+            codeEditor.value = '';
+            showMessage('代码已清空', 'success');
+        }
+        
+        // 清空结果
+        function clearJsResult() {
+            const resultContainer = document.getElementById('js-result');
+            resultContainer.textContent = '执行结果将显示在这里...';
+            resultContainer.className = 'js-result';
+        }
+        
+        // 刷新所有数据
+        async function refreshData() {
+            const isRunning = await getBrowserStatus();
+            if (isRunning) {
+                await getTabsList();
+            } else {
+                document.getElementById('tabs-container').innerHTML = '<div class="no-tabs">浏览器未运行</div>';
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 绑定按钮事件
+            document.getElementById('navigate-btn').addEventListener('click', navigateToUrl);
+            document.getElementById('new-tab-btn').addEventListener('click', openNewTab);
+            document.getElementById('screenshot-btn').addEventListener('click', takeScreenshot);
+            document.getElementById('swagger-btn').addEventListener('click', openSwaggerDocs);
+            
+            // 绑定JavaScript执行器相关事件
+            document.getElementById('js-executor-toggle-btn').addEventListener('click', toggleJsExecutorPanel);
+            document.getElementById('js-execute-btn').addEventListener('click', executeJsCode);
+            document.getElementById('js-clear-code-btn').addEventListener('click', clearJsCode);
+            document.getElementById('js-clear-result-btn').addEventListener('click', clearJsResult);
+            
+            // 支持回车键导航
+            document.getElementById('url-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    navigateToUrl();
+                }
+            });
+            
+            // 为代码编辑器添加Tab键支持
+            const codeEditor = document.getElementById('js-code-editor');
+            codeEditor.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = codeEditor.selectionStart;
+                    const end = codeEditor.selectionEnd;
+                    
+                    // 在光标位置插入4个空格（模拟Tab）
+                    codeEditor.value = codeEditor.value.substring(0, start) + '    ' + codeEditor.value.substring(end);
+                    
+                    // 移动光标到插入Tab后的位置
+                    codeEditor.selectionStart = codeEditor.selectionEnd = start + 4;
+                }
+            });
+            
+            // 初始加载数据
+            refreshData();
+            
+            // 定期刷新数据
+            setInterval(refreshData, 5000);
+        });
+    </script>
+</body>
+</html>
